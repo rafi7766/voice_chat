@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Voice Chat</title>
+</head>
+<body>
+
+<h2>🎤 Voice Message Demo</h2>
+
+<button id="record">Start Record</button>
+<button id="stop">Stop</button>
+
+<div id="messages"></div>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+const recordBtn = document.getElementById("record");
+const stopBtn = document.getElementById("stop");
+const messages = document.getElementById("messages");
+
+recordBtn.onclick = async () => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+  mediaRecorder = new MediaRecorder(stream);
+  mediaRecorder.start();
+
+  audioChunks = [];
+
+  mediaRecorder.ondataavailable = e => {
+    audioChunks.push(e.data);
+  };
+};
+
+stopBtn.onclick = async () => {
+  mediaRecorder.stop();
+
+  mediaRecorder.onstop = async () => {
+    const blob = new Blob(audioChunks, { type: "audio/webm" });
+
+    // upload to server
+    const formData = new FormData();
+    formData.append("file", blob);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+
+    // show in chat
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = data.url;
+    messages.appendChild(audio);
+  };
+};
+</script>
+
+</body>
+</html>
